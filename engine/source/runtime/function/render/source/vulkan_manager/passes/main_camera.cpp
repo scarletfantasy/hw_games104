@@ -243,7 +243,7 @@ namespace Pilot
             &backup_even_color_attachment_description - attachments;
         tone_mapping_pass_color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkSubpassDescription& tone_mapping_pass   = subpasses[_main_camera_subpass_tone_mapping];
+        VkSubpassDescription& tone_mapping_pass   = subpasses[_main_camera_subpass_blur];
         tone_mapping_pass.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
         tone_mapping_pass.inputAttachmentCount    = 1;
         tone_mapping_pass.pInputAttachments       = &tone_mapping_pass_input_attachment_reference;
@@ -272,6 +272,26 @@ namespace Pilot
         color_grading_pass.pDepthStencilAttachment = NULL;
         color_grading_pass.preserveAttachmentCount = 0;
         color_grading_pass.pPreserveAttachments    = NULL;
+
+        VkAttachmentReference blur_pass_input_attachment_reference {};
+        blur_pass_input_attachment_reference.attachment =
+            &backup_odd_color_attachment_description - attachments;
+        blur_pass_input_attachment_reference.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        VkAttachmentReference blur_pass_color_attachment_reference {};
+        blur_pass_color_attachment_reference.attachment =
+            &backup_even_color_attachment_description - attachments;
+        blur_pass_color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription& blur_pass   = subpasses[_main_camera_subpass_tone_mapping];
+        blur_pass.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        blur_pass.inputAttachmentCount    = 1;
+        blur_pass.pInputAttachments       = &blur_pass_input_attachment_reference;
+        blur_pass.colorAttachmentCount    = 1;
+        blur_pass.pColorAttachments       = &blur_pass_color_attachment_reference;
+        blur_pass.pDepthStencilAttachment = NULL;
+        blur_pass.preserveAttachmentCount = 0;
+        blur_pass.pPreserveAttachments    = NULL;
 
         VkAttachmentReference ui_pass_color_attachment_reference {};
         ui_pass_color_attachment_reference.attachment = &backup_even_color_attachment_description - attachments;
@@ -2087,6 +2107,7 @@ namespace Pilot
 
     void PMainCameraPass::draw(PColorGradingPass& color_grading_pass,
                                PToneMappingPass&  tone_mapping_pass,
+                               PBlurPass&         blur_pass,
                                PUIPass&           ui_pass,
                                PCombineUIPass&    combine_ui_pass,
                                uint32_t           current_swapchain_image_index,
@@ -2168,6 +2189,10 @@ namespace Pilot
         m_p_vulkan_context->_vkCmdNextSubpass(m_command_info._current_command_buffer, VK_SUBPASS_CONTENTS_INLINE);
 
         color_grading_pass.draw();
+
+        m_p_vulkan_context->_vkCmdNextSubpass(m_command_info._current_command_buffer, VK_SUBPASS_CONTENTS_INLINE);
+
+        blur_pass.draw();
 
         m_p_vulkan_context->_vkCmdNextSubpass(m_command_info._current_command_buffer, VK_SUBPASS_CONTENTS_INLINE);
 
